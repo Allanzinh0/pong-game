@@ -1,4 +1,8 @@
-import turtle, time
+import turtle, time, platform, os
+from tkinter import TclError
+
+if platform.system() == "Windows":
+    import winsound
 
 WIDTH = 800
 HEIGHT = 600
@@ -69,6 +73,14 @@ def paddle_b_down():
     y -= 20
     paddle_b.sety(y)
 
+def bounce_sound():
+    if platform.system() == "Darwin":
+        os.system("afplay assets/bounce.wav&")
+    elif platform.system() == "Linux":
+        os.system("aplay assets/bounce.wav&")
+    elif platform.system() == "Windows":
+        winsound.PlaySound("assets/bounce.wav", winsound.SND_ASYNC)
+
 # Keyboard Bindings
 window.listen()
 window.onkeypress(paddle_a_up, "w")
@@ -78,41 +90,48 @@ window.onkeypress(paddle_b_down, "Down")
 
 # Main game loop
 while True:
-    window.update()
+    try:
+        window.update()
 
-    # Ball Movement
-    ball.setx(ball.xcor() + ball.dx)
-    ball.sety(ball.ycor() + ball.dy)
+        # Ball Movement
+        ball.setx(ball.xcor() + ball.dx)
+        ball.sety(ball.ycor() + ball.dy)
 
-    # Border Checking
-    if ball.ycor() > (HEIGHT / 2 - 16):
-        ball.sety(HEIGHT / 2 - 16)
-        ball.dy *= -1
-    elif ball.ycor() < ((- HEIGHT) / 2 + 16):
-        ball.sety((- HEIGHT) / 2 + 16)
-        ball.dy *= -1
+        # Border Checking
+        if ball.ycor() > (HEIGHT / 2 - 16):
+            ball.sety(HEIGHT / 2 - 16)
+            ball.dy *= -1
+            bounce_sound()
+        elif ball.ycor() < ((- HEIGHT) / 2 + 16):
+            ball.sety((- HEIGHT) / 2 + 16)
+            ball.dy *= -1
+            bounce_sound()
 
-    if ball.xcor() > (WIDTH / 2 - 16):
-        ball.goto(0, 0)
-        ball.dx *= -1
-        score_a += 1
-        pen.clear()
-        pen.write(f"Player A: {score_a} | Player B: {score_b}", align="center", font=("Courier", 20, "normal"))
+        if ball.xcor() > (WIDTH / 2 - 16):
+            ball.goto(0, 0)
+            ball.dx *= -1
+            score_a += 1
+            pen.clear()
+            pen.write(f"Player A: {score_a} | Player B: {score_b}", align="center", font=("Courier", 20, "normal"))
+        elif ball.xcor() < ((- WIDTH) / 2 + 16):
+            ball.goto(0, 0)
+            ball.dx *= -1
+            score_b += 1
+            pen.clear()
+            pen.write(f"Player A: {score_a} | Player B: {score_b}", align="center", font=("Courier", 20, "normal"))
 
-    elif ball.xcor() < ((- WIDTH) / 2 + 16):
-        ball.goto(0, 0)
-        ball.dx *= -1
-        score_b += 1
-        pen.clear()
-        pen.write(f"Player A: {score_a} | Player B: {score_b}", align="center", font=("Courier", 20, "normal"))
+        # Collisions Checking
+        if ball.xcor() > (WIDTH / 2 - 32) and (ball.ycor() < paddle_b.ycor() + 50 and ball.ycor() > paddle_b.ycor() - 50):
+            ball.setx(WIDTH / 2 - 32)
+            ball.dx *= -1
+            bounce_sound()
+        
+        if ball.xcor() < -(WIDTH / 2 - 32) and (ball.ycor() < paddle_a.ycor() + 50 and ball.ycor() > paddle_a.ycor() - 50):
+            ball.setx(-(WIDTH / 2 - 32))
+            ball.dx *= -1
+            bounce_sound()
 
-    # Collisions Checking
-    if ball.xcor() > (WIDTH / 2 - 32) and (ball.ycor() < paddle_b.ycor() + 50 and ball.ycor() > paddle_b.ycor() - 50):
-        ball.setx(WIDTH / 2 - 32)
-        ball.dx *= -1
-    
-    if ball.xcor() < -(WIDTH / 2 - 32) and (ball.ycor() < paddle_a.ycor() + 50 and ball.ycor() > paddle_a.ycor() - 50):
-        ball.setx(-(WIDTH / 2 - 32))
-        ball.dx *= -1
-
-    time.sleep(1 / 60)
+        time.sleep(1 / 60)
+    except TclError as err:
+        print("Game Closed!")
+        exit()
