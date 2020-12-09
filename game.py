@@ -36,6 +36,18 @@ ball.goto(0, 0)
 ball.dx = 3
 ball.dy = 3
 
+pen = turtle.Turtle()
+pen.speed(0)
+pen.color("white")
+pen.penup()
+pen.hideturtle()
+pen.goto(0, (HEIGHT / 2 - 36))
+pen.write("Player A: 0 | Player B: 0", align="center", font=("Courier", 20, "normal"))
+
+# Score
+score_a = 0
+score_b = 0
+
 # Functions
 def paddle_a_up():
     y = paddle_a.ycor()
@@ -83,10 +95,16 @@ while True:
     if ball.xcor() > (WIDTH / 2 - 16):
         ball.goto(0, 0)
         ball.dx *= -1
+        score_a += 1
+        pen.clear()
+        pen.write(f"Player A: {score_a} | Player B: {score_b}", align="center", font=("Courier", 20, "normal"))
 
     elif ball.xcor() < ((- WIDTH) / 2 + 16):
         ball.goto(0, 0)
         ball.dx *= -1
+        score_b += 1
+        pen.clear()
+        pen.write(f"Player A: {score_a} | Player B: {score_b}", align="center", font=("Courier", 20, "normal"))
 
     # Collisions Checking
     if ball.xcor() > (WIDTH / 2 - 32) and (ball.ycor() < paddle_b.ycor() + 50 and ball.ycor() > paddle_b.ycor() - 50):
