@@ -1,137 +1,129 @@
-import turtle, time, platform, os
-from tkinter import TclError
+import pygame
+from pygame.locals import *
+from OpenGL.GL import *
 
-if platform.system() == "Windows":
-    import winsound
+# Global Variables
+WIDTH = 640
+HEIGHT = 480
 
-WIDTH = 800
-HEIGHT = 600
+# Ball Variables
+xBall = 0
+dxBall = 3
+yBall = 0
+dyBall = 3
+ballSize = 16
 
-# Initialize the window
-window = turtle.Screen()
-window.title("Pong Game")
-window.bgcolor("black")
-window.setup(width=WIDTH, height=HEIGHT)
-window.tracer(0)
+# Player Variables
+yPlayer1 = 0
+yPlayer2 = 0
+playerSpeed = 10
 
-# Game Objects
-paddle_a = turtle.Turtle()
-paddle_a.speed(0)
-paddle_a.shape("square")
-paddle_a.color("white")
-paddle_a.shapesize(stretch_wid=6, stretch_len=1)
-paddle_a.penup()
-paddle_a.goto(-(WIDTH / 2 - 32), 0)
+def playerWidth():
+    return ballSize
 
-paddle_b = turtle.Turtle()
-paddle_b.speed(0)
-paddle_b.shape("square")
-paddle_b.color("white")
-paddle_b.shapesize(stretch_wid=6, stretch_len=1)
-paddle_b.penup()
-paddle_b.goto((WIDTH / 2 - 32), 0)
+def playerHeight():
+    return ballSize * 4
 
-ball = turtle.Turtle()
-ball.speed(0)
-ball.shape("square")
-ball.color("white")
-ball.penup()
-ball.goto(0, 0)
-ball.dx = 3
-ball.dy = 3
+def xPlayer1():
+    return playerWidth() * 1.5 - WIDTH / 2
 
-pen = turtle.Turtle()
-pen.speed(0)
-pen.color("white")
-pen.penup()
-pen.hideturtle()
-pen.goto(0, (HEIGHT / 2 - 36))
-pen.write("Player A: 0 | Player B: 0", align="center", font=("Courier", 20, "normal"))
+def xPlayer2():
+    return WIDTH / 2 - playerWidth() * 1.5
 
-# Score
-score_a = 0
-score_b = 0
+# Initialize Window
+pygame.init()
+pygame.display.set_mode((WIDTH, HEIGHT), DOUBLEBUF | OPENGL)
+sndBounce = pygame.mixer.Sound("assets/bounce.wav")
 
-# Functions
-def paddle_a_up():
-    y = paddle_a.ycor()
-    y += 20
-    paddle_a.sety(y)
+def drawRect(x, y, dx, dy, r, g, b):
+    glColor3f(r, g, b)
 
-def paddle_a_down():
-    y = paddle_a.ycor()
-    y -= 20
-    paddle_a.sety(y)
+    glBegin(GL_QUADS)
+    glVertex2f(-0.5 * dx + x, -0.5 * dy + y)
+    glVertex2f(0.5 * dx + x, -0.5 * dy + y)
+    glVertex2f(0.5 * dx + x, 0.5 * dy + y)
+    glVertex2f(-0.5 * dx + x, 0.5 * dy + y)
+    glEnd()
 
-def paddle_b_up():
-    y = paddle_b.ycor()
-    y += 20
-    paddle_b.sety(y)
+def updateFrame():
+    global xBall, yBall, dxBall, dyBall, yPlayer1, yPlayer2
 
-def paddle_b_down():
-    y = paddle_b.ycor()
-    y -= 20
-    paddle_b.sety(y)
+    # Ball Movement
+    xBall += dxBall
+    yBall += dyBall
 
-def bounce_sound():
-    if platform.system() == "Darwin":
-        os.system("afplay assets/bounce.wav&")
-    elif platform.system() == "Linux":
-        os.system("aplay assets/bounce.wav&")
-    elif platform.system() == "Windows":
-        winsound.PlaySound("assets/bounce.wav", winsound.SND_ASYNC)
+    if (xBall - ballSize / 2 < xPlayer1() + playerWidth() / 2
+    and yBall - ballSize / 2 < yPlayer1 + playerHeight() / 2
+    and yBall + ballSize / 2 > yPlayer1 - playerHeight() / 2):
+        dxBall *= -1
+        sndBounce.play()
 
-# Keyboard Bindings
-window.listen()
-window.onkeypress(paddle_a_up, "w")
-window.onkeypress(paddle_a_down, "s")
-window.onkeypress(paddle_b_up, "Up")
-window.onkeypress(paddle_b_down, "Down")
+    if (xBall + ballSize / 2 > xPlayer2() - playerWidth() / 2
+    and yBall - ballSize / 2 < yPlayer2 + playerHeight() / 2
+    and yBall + ballSize / 2 > yPlayer2 - playerHeight() / 2):
+        dxBall *= -1
+        sndBounce.play()
 
-# Main game loop
+    if xBall + ballSize / 2 > WIDTH / 2 or xBall - ballSize / 2 < - WIDTH / 2:
+        dxBall *= -1
+        xBall = 0
+        yBall = 0
+
+    if yBall + ballSize / 2 > HEIGHT / 2 or yBall - ballSize / 2 < - HEIGHT / 2:
+        dyBall *= -1
+        sndBounce.play()
+
+    # Get Keyboard Input
+    keys = pygame.key.get_pressed()
+
+    # Player 1 Movement
+    if keys[K_w]:
+        yPlayer1 += playerSpeed
+
+        if (yPlayer1 > HEIGHT / 2 - playerHeight() / 2):
+            yPlayer1 = HEIGHT / 2 - playerHeight() / 2
+
+    if keys[K_s]:
+        yPlayer1 -= playerSpeed
+
+        if (yPlayer1 < playerHeight() / 2 - HEIGHT / 2):
+            yPlayer1 = playerHeight() / 2 - HEIGHT / 2
+
+    # Player 2 Movement
+    if keys[K_UP]:
+        yPlayer2 += playerSpeed
+
+        if (yPlayer2 > HEIGHT / 2 - playerHeight() / 2):
+            yPlayer2 = HEIGHT / 2 - playerHeight() / 2
+
+    if keys[K_DOWN]:
+        yPlayer2 -= playerSpeed
+
+        if (yPlayer2 < playerHeight() / 2 - HEIGHT / 2):
+            yPlayer2 = playerHeight() / 2 - HEIGHT / 2
+
+
+def drawFrame():
+    glViewport(0, 0, WIDTH, HEIGHT)
+
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    glOrtho(-WIDTH / 2, WIDTH / 2, - HEIGHT / 2, HEIGHT / 2, 0, 1)
+    glClear(GL_COLOR_BUFFER_BIT)
+
+    drawRect(xBall, yBall, ballSize, ballSize, 1, 1, 0)
+    drawRect(xPlayer1(), yPlayer1, playerWidth(), playerHeight(), 1, 0, 0)
+    drawRect(xPlayer2(), yPlayer2, playerWidth(), playerHeight(), 0, 0, 1)
+
+    pygame.display.flip()
+
 while True:
-    try:
-        window.update()
+    pygame.event.pump()
 
-        # Ball Movement
-        ball.setx(ball.xcor() + ball.dx)
-        ball.sety(ball.ycor() + ball.dy)
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            pygame.quit()
+            exit()
 
-        # Border Checking
-        if ball.ycor() > (HEIGHT / 2 - 16):
-            ball.sety(HEIGHT / 2 - 16)
-            ball.dy *= -1
-            bounce_sound()
-        elif ball.ycor() < ((- HEIGHT) / 2 + 16):
-            ball.sety((- HEIGHT) / 2 + 16)
-            ball.dy *= -1
-            bounce_sound()
-
-        if ball.xcor() > (WIDTH / 2 - 16):
-            ball.goto(0, 0)
-            ball.dx *= -1
-            score_a += 1
-            pen.clear()
-            pen.write(f"Player A: {score_a} | Player B: {score_b}", align="center", font=("Courier", 20, "normal"))
-        elif ball.xcor() < ((- WIDTH) / 2 + 16):
-            ball.goto(0, 0)
-            ball.dx *= -1
-            score_b += 1
-            pen.clear()
-            pen.write(f"Player A: {score_a} | Player B: {score_b}", align="center", font=("Courier", 20, "normal"))
-
-        # Collisions Checking
-        if ball.xcor() > (WIDTH / 2 - 32) and (ball.ycor() < paddle_b.ycor() + 50 and ball.ycor() > paddle_b.ycor() - 50):
-            ball.setx(WIDTH / 2 - 32)
-            ball.dx *= -1
-            bounce_sound()
-        
-        if ball.xcor() < -(WIDTH / 2 - 32) and (ball.ycor() < paddle_a.ycor() + 50 and ball.ycor() > paddle_a.ycor() - 50):
-            ball.setx(-(WIDTH / 2 - 32))
-            ball.dx *= -1
-            bounce_sound()
-
-        time.sleep(1 / 60)
-    except TclError as err:
-        print("Game Closed!")
-        exit()
+    updateFrame()
+    drawFrame()
